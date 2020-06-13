@@ -16,3 +16,4 @@
 
 > Creating EBS volume and attaching to EC2 instance
 
+> Uploading code to /var/www/html
