@@ -215,6 +215,6 @@ resource "null_resource" "cluster123" {
         ]
     }
 }
-output "ip"{
+output "ip2"{
     value =  aws_instance.web.public_ip
 }
