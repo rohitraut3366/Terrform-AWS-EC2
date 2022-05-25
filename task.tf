@@ -1,10 +1,10 @@
 provider "aws" {
-  region     = "ap-south-1"
-  profile    = "RDR"
+  region  = "ap-south-1"
+  profile = "RDR"
 }
 resource "tls_private_key" "Key" {
-  algorithm   = "RSA"
-  rsa_bits = "2048"
+  algorithm = "RSA"
+  rsa_bits  = "2048"
 }
 resource "aws_key_pair" "key_gen" {
   key_name   = "key123"
@@ -12,8 +12,8 @@ resource "aws_key_pair" "key_gen" {
 }
 
 resource "local_file" "keystore" {
-    content     = tls_private_key.Key.private_key_pem
-    filename = "key123.pem"
+  content  = tls_private_key.Key.private_key_pem
+  filename = "key123.pem"
 }
 #create security group
 resource "aws_security_group" "Security_Group" {
@@ -40,9 +40,9 @@ resource "aws_security_group" "Security_Group" {
   }
 }
 resource "aws_s3_bucket" "b" {
-  bucket = "mynewbucket123123"
-  acl    = "private"
-  force_destroy  = true
+  bucket        = "mynewbucket123123"
+  acl           = "private"
+  force_destroy = true
 }
 resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 }
@@ -63,7 +63,7 @@ resource "aws_s3_bucket_policy" "web_distribution" {
 
 locals {
   depends_on = [
-      aws_cloudfront_origin_access_identity.origin_access_identity
+    aws_cloudfront_origin_access_identity.origin_access_identity
   ]
   s3_origin_id = aws_s3_bucket.b.id
 }
@@ -78,8 +78,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
   }
 
-  enabled             = true
-  is_ipv6_enabled     = true
+  enabled         = true
+  is_ipv6_enabled = true
 
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -124,10 +124,10 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   restrictions {
-      geo_restriction {
-        restriction_type = "none"
-      }
+    geo_restriction {
+      restriction_type = "none"
     }
+  }
 
   tags = {
     Environment = "production"
@@ -137,22 +137,22 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     cloudfront_default_certificate = true
   }
 }
-output "cd"{
+output "cd" {
   value = aws_cloudfront_distribution.s3_distribution.domain_name
 }
 resource "aws_instance" "web" {
   depends_on = [
-      aws_security_group.Security_Group
+    aws_security_group.Security_Group
   ]
-  ami           = "ami-0447a12f28fddb066"
-  instance_type = "t2.micro"
-  key_name  =  aws_key_pair.key_gen.key_name
+  ami             = "ami-0447a12f28fddb066"
+  instance_type   = "t2.micro"
+  key_name        = aws_key_pair.key_gen.key_name
   security_groups = ["${aws_security_group.Security_Group.name}"]
   connection {
-    type     = "ssh"
-    user     = "ec2-user"
+    type        = "ssh"
+    user        = "ec2-user"
     private_key = tls_private_key.Key.private_key_pem
-    host     = aws_instance.web.public_ip
+    host        = aws_instance.web.public_ip
   }
   tags = {
     Name = "terraform os"
@@ -167,33 +167,33 @@ resource "aws_ebs_volume" "ebs3" {
   }
 }
 resource "aws_volume_attachment" "ebs_att" {
-  depends_on =[
+  depends_on = [
     aws_instance.web,
     aws_ebs_volume.ebs3
-   ]
-  device_name = "/dev/sdh"
-  volume_id   = aws_ebs_volume.ebs3.id
-  instance_id = aws_instance.web.id
-  force_detach  = true
+  ]
+  device_name  = "/dev/sdh"
+  volume_id    = aws_ebs_volume.ebs3.id
+  instance_id  = aws_instance.web.id
+  force_detach = true
 }
 
 resource "null_resource" "cluster" {
   depends_on = [
     aws_instance.web
   ]
-   connection {
-    type     = "ssh"
-    user     = "ec2-user"
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
     private_key = tls_private_key.Key.private_key_pem
-    host     = aws_instance.web.public_ip
+    host        = aws_instance.web.public_ip
   }
-    provisioner "remote-exec" {
-        inline = [
-          "sudo yum install git httpd php -y",
-          "sudo systemctl start httpd",
-          "sudo systemctl enable httpd"
-        ]
-      }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum install git httpd php -y",
+      "sudo systemctl start httpd",
+      "sudo systemctl enable httpd"
+    ]
+  }
 }
 
 resource "null_resource" "cluster123" {
@@ -201,20 +201,20 @@ resource "null_resource" "cluster123" {
     aws_volume_attachment.ebs_att
   ]
   connection {
-    type     = "ssh"
-    user     = "ec2-user"
+    type        = "ssh"
+    user        = "ec2-user"
     private_key = tls_private_key.Key.private_key_pem
-    host     = aws_instance.web.public_ip
+    host        = aws_instance.web.public_ip
   }
   provisioner "remote-exec" {
     inline = [
-          "sudo mkfs.ext4 /dev/sdh",
-          "sudo mount  /dev/xvdh  /var/www/html",
-          "sudo rm -rf /var/www/html/*",
-          "sudo git clone https://github.com/rohitraut3366/mulicloud.git /var/www/html/"
-        ]
-    }
+      "sudo mkfs.ext4 /dev/sdh",
+      "sudo mount  /dev/xvdh  /var/www/html",
+      "sudo rm -rf /var/www/html/*",
+      "sudo git clone https://github.com/rohitraut3366/mulicloud.git /var/www/html/"
+    ]
+  }
 }
-output "ip2"{
-    value =  aws_instance.web.public_ip
+output "ip2" {
+  value = aws_instance.web.public_ip
 }
